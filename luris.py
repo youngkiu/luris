@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import json
 import glob
@@ -8,9 +9,9 @@ from selenium.webdriver.support.select import Select
 from openpyxl import load_workbook
 
 
-def __get_sample_list(xls_file_path, sheet_name):
+def __get_sample_list(xls_file_path):
     wb = load_workbook(xls_file_path)
-    ws = wb.get_sheet_by_name(sheet_name)
+    ws = wb.active
 
     sample_list = []
 
@@ -102,10 +103,16 @@ def __query_and_save_pdf(driver, sido, sgg, umd, ri, gbn, bobn, bubn, serial_num
 
 
 if __name__ == "__main__":
-    _xls_file_path = '표본목록.xlsx'
-    _sheet_name = '표본목록'
+    if len(sys.argv) != 2:
+        sys.exit()
 
-    _sample_list = __get_sample_list(_xls_file_path, _sheet_name)
+    file_name, extension = os.path.splitext(sys.argv[1])
+    if extension != '.xlsx' and extension != '.xls':
+        sys.exit()
+
+    _xls_file_path = sys.argv[1]
+
+    _sample_list = __get_sample_list(_xls_file_path)
 
     chrome_options = webdriver.ChromeOptions()
     settings = {
