@@ -3,56 +3,79 @@ import sys
 import time
 import json
 import glob
+import openpyxl
+import xlrd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
-from openpyxl import load_workbook
+
+
+def __parse_umd_ri_bn(umd_ri, gbn_bobn_bubn):
+    umd_ri_list = umd_ri.split()
+    assert len(umd_ri_list) == 2, '[Error] %s' % umd_ri
+    umd, ri = umd_ri_list
+
+    gbn_idx = gbn_bobn_bubn.find('산')
+    if gbn_idx < 0:
+        gbn = '일반'
+        bobn_start_idx = 0
+    else:
+        assert gbn_idx == 0, '[Error] %s' % gbn_bobn_bubn
+        gbn = '산'
+        bobn_start_idx = 1
+
+    hyphen_idx = gbn_bobn_bubn.find('-')
+    if hyphen_idx < 0:
+        bobn = gbn_bobn_bubn[bobn_start_idx:]
+        bubn = ''
+    else:
+        bobn = gbn_bobn_bubn[bobn_start_idx:hyphen_idx]
+        bubn = gbn_bobn_bubn[hyphen_idx + 1:]
+
+    print(umd_ri, gbn_bobn_bubn, '-->', umd, ri, gbn, bobn, bubn)
+
+    return umd, ri, gbn, bobn, bubn
 
 
 def __get_sample_list(xls_file_path):
-    wb = load_workbook(xls_file_path)
-    ws = wb.active
-
     sample_list = []
 
-    for r in ws.rows:
-        serial_num = r[2].value
-        if serial_num and serial_num.isdigit():
+    file_name, extension = os.path.splitext(xls_file_path)
+    if extension == '.xlsx':
+        wb = openpyxl.load_workbook(xls_file_path)
+        ws = wb.active
+
+        for r in ws.rows:
+            serial_num = r[2].value
             umd_ri = r[4].value
             gbn_bobn_bubn = r[5].value
 
-            umd_ri_list = umd_ri.split()
-            assert len(umd_ri_list) == 2, '[Error] %s' % umd_ri
-            umd, ri = umd_ri_list
-            gbn_idx = gbn_bobn_bubn.find('산')
-            if gbn_idx < 0:
-                gbn = '일반'
-                bobn_start_idx = 0
-            else:
-                assert gbn_idx == 0, '[Error] %s' % gbn_bobn_bubn
-                gbn = '산'
-                bobn_start_idx = 1
+            if serial_num and serial_num.isdigit():
+                umd, ri, gbn, bobn, bubn = __parse_umd_ri_bn(umd_ri, gbn_bobn_bubn)
+                sample_list.append([serial_num, umd, ri, gbn, bobn, bubn])
 
-            hyphen_idx = gbn_bobn_bubn.find('-')
-            if hyphen_idx < 0:
-                bobn = gbn_bobn_bubn[bobn_start_idx:]
-                bubn = ''
-            else:
-                bobn = gbn_bobn_bubn[bobn_start_idx:hyphen_idx]
-                bubn = gbn_bobn_bubn[hyphen_idx+1:]
+        wb.close()
+    elif extension == '.xls':
+        wb = xlrd.open_workbook(xls_file_path)
+        ws = wb.sheet_by_index(0)
 
-            print(serial_num, umd_ri, gbn_bobn_bubn, '-->', umd, ri, gbn, bobn, bubn)
+        for i in range(ws.nrows):
+            serial_num = ws.row_values(i)[2]
+            umd_ri = ws.row_values(i)[4]
+            gbn_bobn_bubn = ws.row_values(i)[5]
 
-            sample_list.append([umd, ri, gbn, bobn, bubn, serial_num])
+            if serial_num and serial_num.isdigit():
+                umd, ri, gbn, bobn, bubn = __parse_umd_ri_bn(umd_ri, gbn_bobn_bubn)
+                sample_list.append([serial_num, umd, ri, gbn, bobn, bubn])
 
-    wb.close()
+        wb.release_resources()
+    else:
+        return sample_list
 
     return sample_list
 
 
 def __query_and_save_pdf(driver, sido, sgg, umd, ri, gbn, bobn, bubn, serial_num, download_dir):
-    print(sido, sgg, umd, ri, gbn, bobn, bubn, serial_num)
-
     Select(driver.find_element(By.NAME, 'selSido')).select_by_visible_text(sido)
     driver.implicitly_wait(10)
 
@@ -81,6 +104,7 @@ def __query_and_save_pdf(driver, sido, sgg, umd, ri, gbn, bobn, bubn, serial_num
     driver.find_element(By.CLASS_NAME, 'print_bt').click()
     driver.implicitly_wait(100)
 
+    # https://stackoverflow.com/questions/10629815/how-to-switch-to-new-window-in-selenium-for-python
     driver.switch_to.window(driver.window_handles[1])
     driver.implicitly_wait(10)
 
@@ -101,19 +125,22 @@ def __query_and_save_pdf(driver, sido, sgg, umd, ri, gbn, bobn, bubn, serial_num
         else:
             os.remove(os.path.join(download_dir, duplicated_file))
 
+    assert os.stat(target_file_path).st_size > 0, '[Error] %s file is 0 size' % target_file_path
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        sys.exit()
-
-    file_name, extension = os.path.splitext(sys.argv[1])
-    if extension != '.xlsx' and extension != '.xls':
+        print('Type luris.exe sample.xlsx')
         sys.exit()
 
     _xls_file_path = sys.argv[1]
 
     _sample_list = __get_sample_list(_xls_file_path)
+    if not _sample_list:
+        print('Incompatible Excel file(%s)' % _xls_file_path)
+        sys.exit()
 
+    # https://stackoverflow.com/questions/56897041/how-to-save-opened-page-as-pdf-in-selenium-python
     chrome_options = webdriver.ChromeOptions()
     settings = {
         "recentDestinations": [{
@@ -138,13 +165,15 @@ if __name__ == "__main__":
 
     _sido = '경상북도'
     _sgg = '안동시'
-    for _umd, _ri, _gbn, _bobn, _bubn, _serial_num in _sample_list:
+    num_of_sample = len(_sample_list)
+    for i, [_serial_num, _umd, _ri, _gbn, _bobn, _bubn] in enumerate(_sample_list):
         _driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=CHROMEDRIVER_PATH)
 
-        url = 'http://luris.molit.go.kr/web/index.jsp'
+        url = 'http://luris.molit.go.kr/'
         _driver.get(url)
 
         try:
+            print('%4d/%4d, 일련번호:%s -' % (i, num_of_sample, _serial_num), _sido, _sgg, _umd, _ri, _gbn, _bobn, _bubn)
             __query_and_save_pdf(_driver, _sido, _sgg, _umd, _ri, _gbn, _bobn, _bubn, _serial_num, _download_dir)
         except:
             print('[Error] not found:', _sido, _sgg, _umd, _ri, _gbn, _bobn, _bubn)
