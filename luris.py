@@ -164,7 +164,7 @@ if __name__ == "__main__":
     }
 
     _current_dir = os.path.dirname(os.path.realpath(__file__))
-    _download_dir = os.path.join(_current_dir, 'pdf')
+    _download_dir = os.path.join(_current_dir, '%s_%s' % (_sido, _sgg))
     if not os.path.exists(_download_dir):
         os.mkdir(_download_dir)
 
