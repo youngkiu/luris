@@ -163,6 +163,8 @@ if __name__ == "__main__":
     chrome_options.add_argument('--kiosk-printing')
     CHROMEDRIVER_PATH = 'chromedriver'
 
+    f = open('error_address.txt', 'w')
+
     _sido = '경상북도'
     _sgg = '안동시'
     num_of_sample = len(_sample_list)
@@ -172,10 +174,21 @@ if __name__ == "__main__":
         url = 'http://luris.molit.go.kr/'
         _driver.get(url)
 
+        address_str = '%s: %s %s %s %s' % (_serial_num, _sido, _sgg, _umd, _ri)
+        if _gbn == '산':
+            address_str += ' %s' % _gbn
+        address_str += ' %s' % _bobn
+        if _bubn:
+            address_str += '-%s' % _bubn
+
+        print('%4d/%4d, %s' % (i+1, num_of_sample, address_str))
+
         try:
-            print('%4d/%4d, 일련번호:%s -' % (i, num_of_sample, _serial_num), _sido, _sgg, _umd, _ri, _gbn, _bobn, _bubn)
             __query_and_save_pdf(_driver, _sido, _sgg, _umd, _ri, _gbn, _bobn, _bubn, _serial_num, _download_dir)
         except:
-            print('[Error] not found:', _sido, _sgg, _umd, _ri, _gbn, _bobn, _bubn)
+            print('[Error] not found - %s', address_str)
+            f.write('%s\n' % address_str)
         finally:
             _driver.quit()
+
+    f.close()
