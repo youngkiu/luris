@@ -3,6 +3,7 @@ import sys
 import time
 import json
 import glob
+import argparse
 import openpyxl
 import xlrd
 from selenium import webdriver
@@ -129,11 +130,15 @@ def __query_and_save_pdf(driver, sido, sgg, umd, ri, gbn, bobn, bubn, serial_num
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print('Type luris.exe sample.xlsx')
-        sys.exit()
+    parser = argparse.ArgumentParser(description='Save the query results of http://luris.molit.go.kr/ as a pdf.')
+    parser.add_argument('-d', '--sido', required=True, type=str, help='광역시 및 도')
+    parser.add_argument('-s', '--sgg', required=True, type=str, help='시군구')
+    parser.add_argument('-i', '--excel', required=True, type=str, help='excel file name')
+    args = parser.parse_args()
 
-    _xls_file_path = sys.argv[1]
+    _sido = args.sido
+    _sgg = args.sgg
+    _xls_file_path = args.excel
 
     _sample_list = __get_sample_list(_xls_file_path)
     if not _sample_list:
@@ -165,8 +170,6 @@ if __name__ == "__main__":
 
     f = open('error_address.txt', 'w')
 
-    _sido = '경상북도'
-    _sgg = '안동시'
     num_of_sample = len(_sample_list)
     for i, [_serial_num, _umd, _ri, _gbn, _bobn, _bubn] in enumerate(_sample_list):
         _driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=CHROMEDRIVER_PATH)
@@ -188,6 +191,7 @@ if __name__ == "__main__":
         except:
             print('[Error] not found - %s', address_str)
             f.write('%s\n' % address_str)
+            f.flush()
         finally:
             _driver.quit()
 
