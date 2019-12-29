@@ -13,8 +13,12 @@ from selenium.webdriver.support.select import Select
 
 def __parse_umd_ri_bn(umd_ri, gbn_bobn_bubn):
     umd_ri_list = umd_ri.split()
-    assert len(umd_ri_list) == 2, '[Error] %s' % umd_ri
-    umd, ri = umd_ri_list
+    umd = umd_ri_list[0]
+    if len(umd_ri_list) > 1:
+        assert len(umd_ri_list) == 2, '[Error] %s' % umd_ri
+        ri = umd_ri_list[1]
+    else:
+        ri = ''
 
     gbn_idx = gbn_bobn_bubn.find('산')
     if gbn_idx < 0:
@@ -86,16 +90,18 @@ def __query_and_save_pdf(driver, sido, sgg, umd, ri, gbn, bobn, bubn, serial_num
     Select(driver.find_element(By.NAME, 'selUmd')).select_by_visible_text(umd)
     driver.implicitly_wait(10)
 
-    Select(driver.find_element(By.NAME, 'selRi')).select_by_visible_text(ri)
-    driver.implicitly_wait(10)
+    if ri:
+        Select(driver.find_element(By.NAME, 'selRi')).select_by_visible_text(ri)
+        driver.implicitly_wait(10)
 
     Select(driver.find_element(By.NAME, 'landGbn')).select_by_visible_text(gbn)
     driver.implicitly_wait(10)
 
     driver.find_element(By.NAME, 'bobn').send_keys(bobn)
     driver.implicitly_wait(10)
-    driver.find_element(By.NAME, 'bubn').send_keys(bubn)
-    driver.implicitly_wait(10)
+    if bubn:
+        driver.find_element(By.NAME, 'bubn').send_keys(bubn)
+        driver.implicitly_wait(10)
 
     driver.find_element(By.XPATH, '//button[text()="열람"]').click()
     driver.implicitly_wait(100)
