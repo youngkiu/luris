@@ -29,7 +29,7 @@ def __parse_umd_ri_bn(umd_ri, gbn_bobn_bubn):
         gbn = '산'
         bobn_start_idx = 1
 
-    hyphen_idx = gbn_bobn_bubn.find('-')
+    hyphen_idx = gbn_bobn_bubn.rfind('-')
     if hyphen_idx < 0:
         bobn = gbn_bobn_bubn[bobn_start_idx:]
         bubn = ''
@@ -97,9 +97,11 @@ def __query_and_save_pdf(driver, sido, sgg, umd, ri, gbn, bobn, bubn, serial_num
     Select(driver.find_element(By.NAME, 'landGbn')).select_by_visible_text(gbn)
     driver.implicitly_wait(10)
 
+    assert bobn.isdigit(), '[Error] not digit (%s)' % bobn
     driver.find_element(By.NAME, 'bobn').send_keys(bobn)
     driver.implicitly_wait(10)
     if bubn:
+        assert bubn.isdigit(), '[Error] not digit (%s)' % bubn
         driver.find_element(By.NAME, 'bubn').send_keys(bubn)
         driver.implicitly_wait(10)
 
