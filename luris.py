@@ -174,7 +174,7 @@ if __name__ == "__main__":
     chrome_options.add_argument('--kiosk-printing')
     CHROMEDRIVER_PATH = 'chromedriver'
 
-    f = open('error_address.txt', 'w')
+    f = open('error_address_%s_%s.txt' % (_sido, _sgg), 'w')
 
     num_of_sample = len(_sample_list)
     for i, [_serial_num, _umd, _ri, _gbn, _bobn, _bubn] in enumerate(_sample_list):
