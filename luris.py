@@ -3,10 +3,12 @@ import sys
 import time
 import json
 import glob
+import math
 import datetime
 import argparse
 import openpyxl
 import xlrd
+from tqdm import tqdm
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
@@ -151,20 +153,39 @@ if __name__ == "__main__":
     _xls_file_path = args.excel
 
     if args.timer is not None:
-        rsvd = args.timer
         now = datetime.datetime.now()
+        rsvd = args.timer
         rsvd = rsvd.replace(year=now.year, month=now.month, day=now.day)
         if rsvd.time() < now.time():
             rsvd += datetime.timedelta(days=1)
 
-        print('The program will start at %s' % rsvd.strftime("%Y-%m-%d %H:%M"))
+        print('The program will start at %s' % rsvd.strftime("%Y-%m-%d %H:%M:%S"))
         left = rsvd - now
-        while left.days >= 0 and left.seconds > 0:
-            print('The program will run after %d seconds' % left.seconds)
-            time.sleep(1)
+        if left.days >= 0 and left.seconds > 0:
+            assert left.days == 0
 
-            now = datetime.datetime.now()
-            left = rsvd - now
+            # https://stackoverflow.com/questions/3160699/python-progress-bar
+            print('The progress of the waiting time')
+            display_period = 3
+            toolbar_width = math.ceil(left.seconds / display_period)
+            sleep_period = display_period
+            start = now
+            for i in tqdm(range(toolbar_width)):
+                time.sleep(sleep_period)
+
+                predict = start + datetime.timedelta(0, (i + 1) * display_period)
+                now = datetime.datetime.now()
+                if predict < now:
+                    sleep_period -= 0.0001
+                    # print('[Debug] decrease sleep_period(%f) - predict:%s, now:%s' % (
+                    #     sleep_period, predict.strftime('%H:%M:%S'), now.strftime('%H:%M:%S')))
+                else:
+                    sleep_period += 0.001
+                    # print('[Debug] increase sleep_period(%f) - predict:%s, now:%s' % (
+                    #     sleep_period, predict.strftime('%H:%M:%S'), now.strftime('%H:%M:%S')))
+
+        now = datetime.datetime.now()
+        print('It is now %s' % now.strftime("%Y-%m-%d %H:%M:%S"))
 
     _sample_list = __get_sample_list(_xls_file_path)
     if not _sample_list:
