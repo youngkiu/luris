@@ -3,6 +3,7 @@ import sys
 import time
 import json
 import glob
+import datetime
 import argparse
 import openpyxl
 import xlrd
@@ -142,11 +143,28 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--sido', required=True, type=str, help='광역시 및 도')
     parser.add_argument('-s', '--sgg', required=True, type=str, help='시군구')
     parser.add_argument('-i', '--excel', required=True, type=str, help='excel file name')
+    parser.add_argument('-t', '--timer', type=lambda s: datetime.datetime.strptime(s, '%H%M'), help='reservation time')
     args = parser.parse_args()
 
     _sido = args.sido
     _sgg = args.sgg
     _xls_file_path = args.excel
+
+    if args.timer is not None:
+        rsvd = args.timer
+        now = datetime.datetime.now()
+        rsvd = rsvd.replace(year=now.year, month=now.month, day=now.day)
+        if rsvd.time() < now.time():
+            rsvd += datetime.timedelta(days=1)
+
+        print('The program will start at %s' % rsvd.strftime("%Y-%m-%d %H:%M"))
+        left = rsvd - now
+        while left.days >= 0 and left.seconds > 0:
+            print('The program will run after %d seconds' % left.seconds)
+            time.sleep(1)
+
+            now = datetime.datetime.now()
+            left = rsvd - now
 
     _sample_list = __get_sample_list(_xls_file_path)
     if not _sample_list:
