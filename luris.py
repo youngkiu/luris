@@ -141,29 +141,38 @@ def __query_and_save_pdf(driver, sido, sgg, umd, ri, gbn, bobn, bubn, serial_num
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Save the query results of http://luris.molit.go.kr/ as a pdf.')
+    parser = argparse.ArgumentParser(description='Save the query results of http://luris.molit.go.kr/ as a pdf.', add_help=False)
     parser.add_argument('-d', '--sido', required=True, type=str, help='광역시 및 도')
     parser.add_argument('-s', '--sgg', required=True, type=str, help='시군구')
     parser.add_argument('-i', '--excel', required=True, type=str, help='excel file name')
     parser.add_argument('-t', '--timer', type=lambda s: datetime.datetime.strptime(s, '%H%M'), help='reservation time')
+    # https://www.reddit.com/r/learnpython/comments/3gbkin/overriding_h_short_option_in_argparse/
+    parser.add_argument('-h', '--hour', type=int, help='delay hour')
+    parser.add_argument('--help', action='help', default=argparse.SUPPRESS, help=argparse._('show this help message and exit'))
     args = parser.parse_args()
 
     _sido = args.sido
     _sgg = args.sgg
     _xls_file_path = args.excel
 
-    if args.timer is not None:
+    if args.timer and args.hour:
+        print('-t(--time) and -h(--hour) options are mutually exclusive')
+        sys.exit()
+    elif args.timer:
         now = datetime.datetime.now()
-        rsvd = args.timer
-        rsvd = rsvd.replace(year=now.year, month=now.month, day=now.day)
-        if rsvd.time() < now.time():
-            rsvd += datetime.timedelta(days=1)
+        future = args.timer.replace(year=now.year, month=now.month, day=now.day)
+        if future.time() < now.time():
+            future += datetime.timedelta(days=1)
+    elif args.hour:
+        now = datetime.datetime.now()
+        future = now + datetime.timedelta(days=args.hour//24, hours=args.hour%24)
+    else:
+        future = None
 
-        print('The program will start at %s' % rsvd.strftime("%Y-%m-%d %H:%M:%S"))
-        left = rsvd - now
+    if future:
+        print('The program will start at %s' % future.strftime("%Y-%m-%d %H:%M:%S"))
+        left = future - now
         if left.days >= 0 and left.seconds > 0:
-            assert left.days == 0
-
             # https://stackoverflow.com/questions/3160699/python-progress-bar
             print('The progress of the waiting time')
             display_period = 3
