@@ -14,6 +14,34 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 
 
+def __wait_for_time(future, now):
+    print('The program will start at %s' % future.strftime("%Y-%m-%d %H:%M:%S"))
+    left = future - now
+    if left.days >= 0 and left.seconds > 0:
+        # https://stackoverflow.com/questions/3160699/python-progress-bar
+        print('The progress of the waiting time')
+        display_period = 3
+        toolbar_width = math.ceil(left.seconds / display_period)
+        sleep_period = display_period
+        start = now
+        for i in tqdm(range(toolbar_width)):
+            time.sleep(sleep_period)
+
+            predict = start + datetime.timedelta(0, (i + 1) * display_period)
+            now = datetime.datetime.now()
+            if predict < now:
+                sleep_period -= 0.0001
+                # print('[Debug] decrease sleep_period(%f) - predict:%s, now:%s' % (
+                #     sleep_period, predict.strftime('%H:%M:%S'), now.strftime('%H:%M:%S')))
+            else:
+                sleep_period += 0.001
+                # print('[Debug] increase sleep_period(%f) - predict:%s, now:%s' % (
+                #     sleep_period, predict.strftime('%H:%M:%S'), now.strftime('%H:%M:%S')))
+
+    now = datetime.datetime.now()
+    print('It is now %s' % now.strftime("%Y-%m-%d %H:%M:%S"))
+
+
 def __parse_umd_ri_bn(umd_ri, gbn_bobn_bubn):
     umd_ri_list = umd_ri.split()
     umd = umd_ri_list[0]
@@ -145,7 +173,8 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--sido', required=True, type=str, help='광역시 및 도')
     parser.add_argument('-s', '--sgg', required=True, type=str, help='시군구')
     parser.add_argument('-i', '--excel', required=True, type=str, help='excel file name')
-    parser.add_argument('-t', '--timer', type=lambda s: datetime.datetime.strptime(s, '%H%M'), help='reservation time')
+    parser.add_argument('-f', '--datetime', type=lambda s: datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S'), help='date time')
+    parser.add_argument('-t', '--time', type=lambda s: datetime.datetime.strptime(s, '%H%M'), help='reservation time')
     # https://www.reddit.com/r/learnpython/comments/3gbkin/overriding_h_short_option_in_argparse/
     parser.add_argument('-h', '--hour', type=int, help='delay hour')
     parser.add_argument('--help', action='help', default=argparse.SUPPRESS, help=argparse._('show this help message and exit'))
@@ -155,46 +184,25 @@ if __name__ == "__main__":
     _sgg = args.sgg
     _xls_file_path = args.excel
 
-    if args.timer and args.hour:
-        print('-t(--time) and -h(--hour) options are mutually exclusive')
+    num_of_time_arg = sum(x is not None for x in [args.time, args.hour, args.datetime])
+    if num_of_time_arg > 1:
+        print('-t(--time) and -h(--hour) and -f(--datetime) options are mutually exclusive')
         sys.exit()
-    elif args.timer:
-        now = datetime.datetime.now()
-        future = args.timer.replace(year=now.year, month=now.month, day=now.day)
-        if future.time() < now.time():
-            future += datetime.timedelta(days=1)
-    elif args.hour:
-        now = datetime.datetime.now()
-        future = now + datetime.timedelta(days=args.hour//24, hours=args.hour%24)
-    else:
-        future = None
 
-    if future:
-        print('The program will start at %s' % future.strftime("%Y-%m-%d %H:%M:%S"))
-        left = future - now
-        if left.days >= 0 and left.seconds > 0:
-            # https://stackoverflow.com/questions/3160699/python-progress-bar
-            print('The progress of the waiting time')
-            display_period = 3
-            toolbar_width = math.ceil(left.seconds / display_period)
-            sleep_period = display_period
-            start = now
-            for i in tqdm(range(toolbar_width)):
-                time.sleep(sleep_period)
+    if num_of_time_arg == 1:
+        _now = datetime.datetime.now()
+        if args.datetime:
+            _future = args.datetime
+        elif args.time:
+            _future = args.time.replace(year=_now.year, month=_now.month, day=_now.day)
+            if _future.time() < _now.time():
+                _future += datetime.timedelta(days=1)
+        elif args.hour:
+            _future = _now + datetime.timedelta(days=args.hour//24, hours=args.hour%24)
+        else:
+            assert False
 
-                predict = start + datetime.timedelta(0, (i + 1) * display_period)
-                now = datetime.datetime.now()
-                if predict < now:
-                    sleep_period -= 0.0001
-                    # print('[Debug] decrease sleep_period(%f) - predict:%s, now:%s' % (
-                    #     sleep_period, predict.strftime('%H:%M:%S'), now.strftime('%H:%M:%S')))
-                else:
-                    sleep_period += 0.001
-                    # print('[Debug] increase sleep_period(%f) - predict:%s, now:%s' % (
-                    #     sleep_period, predict.strftime('%H:%M:%S'), now.strftime('%H:%M:%S')))
-
-        now = datetime.datetime.now()
-        print('It is now %s' % now.strftime("%Y-%m-%d %H:%M:%S"))
+        __wait_for_time(_future, _now)
 
     _sample_list = __get_sample_list(_xls_file_path)
     if not _sample_list:
