@@ -14,13 +14,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 
 
-def __wait_for_time(future, now):
+def __wait_for_time(future, now, display_period=3):
     print('The program will start at %s' % future.strftime("%Y-%m-%d %H:%M:%S"))
     left = future - now
     if left.days >= 0 and left.seconds > 0:
         # https://stackoverflow.com/questions/3160699/python-progress-bar
         print('The progress of the waiting time')
-        display_period = 3
         toolbar_width = math.ceil(left.seconds / display_period)
         sleep_period = display_period
         start = now
@@ -238,8 +237,8 @@ if __name__ == "__main__":
     for i, [_serial_num, _umd, _ri, _gbn, _bobn, _bubn] in enumerate(_sample_list):
         _driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=CHROMEDRIVER_PATH)
 
-        url = 'http://luris.molit.go.kr/'
-        _driver.get(url)
+        _url = 'http://luris.molit.go.kr/'
+        _driver.get(_url)
 
         address_str = '%s: %s %s %s %s' % (_serial_num, _sido, _sgg, _umd, _ri)
         if _gbn == '산':
