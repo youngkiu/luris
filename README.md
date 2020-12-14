@@ -9,7 +9,7 @@ https://chromedriver.chromium.org/downloads
 
 ## Usage
 ```
-python luris.py -d 경상북도 -s 안동시 -i 표본목록(안동).xls
+python luris.py -d 경상북도 -s 안동시 -i "표본목록(안동).xls"
 ```
 
 ## Built

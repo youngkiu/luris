@@ -1,3 +1,5 @@
+#-*- coding: utf-8 -*-
+
 import os
 import sys
 import time
@@ -8,9 +10,12 @@ import datetime
 import argparse
 import openpyxl
 import xlrd
+import traceback
 from tqdm import tqdm
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
 
 
@@ -111,44 +116,51 @@ def __get_sample_list(xls_file_path):
 
 
 def __query_and_save_pdf(driver, sido, sgg, umd, ri, gbn, bobn, bubn, serial_num, download_dir):
-    Select(driver.find_element(By.NAME, 'selSido')).select_by_visible_text(sido)
-    driver.implicitly_wait(10)
+    # https://dejavuqa.tistory.com/110
+    wait = WebDriverWait(driver, 10)
+    element = wait.until(EC.presence_of_element_located((By.NAME, "selSido")))
+    Select(element).select_by_visible_text(sido)
 
-    Select(driver.find_element(By.NAME, 'selSgg')).select_by_visible_text(sgg)
     driver.implicitly_wait(10)
+    element = wait.until(EC.presence_of_element_located((By.NAME, "selSgg")))
+    Select(element).select_by_visible_text(sgg)
 
-    Select(driver.find_element(By.NAME, 'selUmd')).select_by_visible_text(umd)
     driver.implicitly_wait(10)
+    element = wait.until(EC.presence_of_element_located((By.NAME, "selUmd")))
+    Select(element).select_by_visible_text(umd)
 
     if ri:
-        Select(driver.find_element(By.NAME, 'selRi')).select_by_visible_text(ri)
         driver.implicitly_wait(10)
+        element = wait.until(EC.presence_of_element_located((By.NAME, "selRi")))
+        Select(element).select_by_visible_text(ri)
 
-    Select(driver.find_element(By.NAME, 'landGbn')).select_by_visible_text(gbn)
-    driver.implicitly_wait(10)
+    element = wait.until(EC.presence_of_element_located((By.NAME, "landGbn")))
+    Select(element).select_by_visible_text(gbn)
 
     assert bobn.isdigit(), '[Error] not digit (%s)' % bobn
-    driver.find_element(By.NAME, 'bobn').send_keys(bobn)
-    driver.implicitly_wait(10)
+    wait.until(EC.presence_of_element_located((By.NAME, "bobn"))).send_keys(bobn)
+
     if bubn:
         assert bubn.isdigit(), '[Error] not digit (%s)' % bubn
-        driver.find_element(By.NAME, 'bubn').send_keys(bubn)
-        driver.implicitly_wait(10)
+        wait.until(EC.presence_of_element_located((By.NAME, "bubn"))).send_keys(bubn)
 
-    driver.find_element(By.XPATH, '//button[text()="열람"]').click()
-    driver.implicitly_wait(100)
+    wait.until(EC.presence_of_element_located((By.XPATH, '//button[text()="열람"]'))).click()
+    driver.implicitly_wait(1000)
 
-    driver.find_element(By.CLASS_NAME, 'printa').click()
+    wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@class='printa']"))).click()
     driver.implicitly_wait(10)
-    driver.find_element(By.CLASS_NAME, 'print_bt').click()
+
+    wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@class='print_bt']"))).click()
     driver.implicitly_wait(100)
 
     # https://stackoverflow.com/questions/10629815/how-to-switch-to-new-window-in-selenium-for-python
     driver.switch_to.window(driver.window_handles[1])
-    driver.implicitly_wait(10)
+    driver.implicitly_wait(1000)
 
+    time.sleep(3)
     driver.execute_script('window.print();')
     driver.implicitly_wait(1000)
+    time.sleep(1)
 
     target_file_path = os.path.join(download_dir, '%s.pdf' % serial_num)
     if os.path.exists(target_file_path):
@@ -252,6 +264,7 @@ if __name__ == "__main__":
         try:
             __query_and_save_pdf(_driver, _sido, _sgg, _umd, _ri, _gbn, _bobn, _bubn, _serial_num, _download_dir)
         except:
+            traceback.print_exc()
             print('[Error] not found - %s', address_str)
             f.write('%s\n' % address_str)
             f.flush()
