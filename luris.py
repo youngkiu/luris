@@ -157,7 +157,7 @@ def __query_and_save_pdf(driver, sido, sgg, umd, ri, gbn, bobn, bubn, serial_num
     driver.switch_to.window(driver.window_handles[1])
     driver.implicitly_wait(1000)
 
-    time.sleep(3)
+    time.sleep(10)
     driver.execute_script('window.print();')
     driver.implicitly_wait(1000)
     time.sleep(1)
