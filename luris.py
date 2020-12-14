@@ -241,13 +241,13 @@ if __name__ == "__main__":
              'savefile.default_directory': _download_dir}
     chrome_options.add_experimental_option('prefs', prefs)
     chrome_options.add_argument('--kiosk-printing')
-    CHROMEDRIVER_PATH = 'chromedriver'
+    CHROMEDRIVER_PATH = os.path.join(_current_dir, 'chromedriver')
 
     f = open('error_address_%s_%s.txt' % (_sido, _sgg), 'w')
 
     num_of_sample = len(_sample_list)
     for i, [_serial_num, _umd, _ri, _gbn, _bobn, _bubn] in enumerate(_sample_list):
-        _driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=CHROMEDRIVER_PATH)
+        _driver = webdriver.Chrome(options=chrome_options, executable_path=CHROMEDRIVER_PATH)
 
         _url = 'http://luris.molit.go.kr/'
         _driver.get(_url)
